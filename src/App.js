@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import './App.css'
 
-import { BrowserRouter as Router} from 'react-router-dom';
+import { BrowserRouter as Router, Redirect} from 'react-router-dom';
 import Route from 'react-router-dom/Route';
 
 
@@ -19,7 +19,10 @@ const about = ()=>{
               </button>
             </div>
             <div class="modal-body">
-              ...
+            Connect Four is a two-player connection board game, in which the players choose a color and then take turns dropping colored discs into a seven-column, six-row vertically suspended grid.
+             The pieces fall straight down, occupying the lowest available space within the column. 
+             The objective of the game is to be the first to form a horizontal, vertical, or diagonal line of four of one's own discs. Connect Four is a solved game. The first player can always win by playing the right moves.
+            
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -55,10 +58,14 @@ class App extends Component {
           player1: "",
           player2: "",
           yellow : "",
-          blue: "",    
+          blue: "", 
+          setName: false   
         }
       }
 
+      componentWillUnmount(){
+        localStorage.clear();
+      }
       menu = () =>{
         return(
           <div className="container menu">
@@ -82,9 +89,7 @@ class App extends Component {
               </div>
             </div>
             </div>
-            <a href={this.state.player1 === "" || this.state.player2 ==="" ? "" : "/game"}>
-                <button type="button" class="btn btn-outline-success"><i class="fa fa-play" aria-hidden="true" onClick={this.setCoin}></i>  Play</button>
-            </a>
+                <button type="button" class="btn btn-outline-success" onClick={this.setCoin}><i class="fa fa-play" aria-hidden="true"></i>  Play</button>
           </div>
         );
       }
@@ -110,8 +115,11 @@ class App extends Component {
         blue:this.state.player1,
         yellow:this.state.player2
       })
-      localStorage.setItem("Blue",this.state.blue);
-      localStorage.setItem("Yellow",this.state.yellow);
+      localStorage.setItem("Yellow",this.state.player2);
+      localStorage.setItem("Blue",this.state.player1);
+      localStorage.setItem("blueScore",0);
+      localStorage.setItem("yellowScore",0);
+      window.location.replace("/game");
     }
 
     render() {
@@ -123,15 +131,10 @@ class App extends Component {
 
                  <Route path="/player" exact component={this.menu}/> 
 
-                <Route path="/game" exact render={() =>{
-                  return(<Board />)}
+                <Route path="/game" exact render={() =>(
+                 localStorage.getItem("Blue") != null? (<Board />): (<Redirect to="/player" />))
                 }/>  
 
-                <Route path="/score" exact render={
-                     ()=>{
-                         return ( <h1>Score Card</h1>);
-                     }
-                 }/> 
               </div>
             </Router>
         );
@@ -144,6 +147,8 @@ class Board extends Component {
   {
     super(props);
     this.state={
+      blue: "bg-primary",
+      yellow: "bg-warning",
       board: [["bg-light","bg-light","bg-light","bg-light","bg-light","bg-light","bg-light"],
               ["bg-light","bg-light","bg-light","bg-light","bg-light","bg-light","bg-light"],
               ["bg-light","bg-light","bg-light","bg-light","bg-light","bg-light","bg-light"],
@@ -151,7 +156,7 @@ class Board extends Component {
               ["bg-light","bg-light","bg-light","bg-light","bg-light","bg-light","bg-light"],
               ["bg-light","bg-light","bg-light","bg-light","bg-light","bg-light","bg-light"],
         ],
-      blue: false
+      blueStatus: true
     };
   }
 
@@ -159,6 +164,14 @@ class Board extends Component {
     return(
       <div className="container">
             <h1>Connect4</h1>
+            <div class="dropdown sticky-top">
+            <button type="button" class={this.state.blueStatus?"btn btn-primary btn-lg":"btn btn-warning btn-lg"}  id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{this.state.blueStatus?localStorage.getItem("Blue")+" : "+localStorage.getItem("blueScore"):localStorage.getItem("Yellow")+" : "+localStorage.getItem("yellowScore")}</button>
+            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+              <a class="dropdown-item" >{!this.state.blueStatus?localStorage.getItem("Blue")+" : "+localStorage.getItem("blueScore"):localStorage.getItem("Yellow")+" : "+localStorage.getItem("yellowScore")}</a>
+            </div>
+          </div>
+
+       <button type="button" class="btn btn-dark" onClick={this.restart}>Restart</button>
             <table class="col-lg-7 table table-dark" align="center">
             <tbody>
               {this.state.board.map((colors,i) =>
@@ -179,35 +192,100 @@ class Board extends Component {
   }
 
   game(col){
-    if(this.state.board[5][col] === "bg-light")
+    let row=5
+    console.log(localStorage.getItem("Blue"))
+    while(row>=0)
     {
-      var board = this.state.board
-      board[5][col] = this.state.blue? "bg-primary":"bg-warning";
-      this.setState(state =>({
-        board:board,
-        blue: !state.blue
-      }))
-    }
-    /*let count=0
-    console.log(count)
-    let color=""
-    for(let c=0;c<5;c++)
-    {
-      if((this.state.board[5][c] === this.state.board[5][c+1]) && this.state.board[5][c] != "bg-light")
+      if(this.state.board[row][col] === "bg-light" && row>=0 && col>=0)
       {
-        count +=1;
-        color = this.state.board[5][c]
+        var board = this.state.board
+        board[row][col] = this.state.blueStatus? this.state.blue:this.state.yellow;
+        this.setState(state =>({
+          board:board,
+          blueStatus: !state.blueStatus
+        }))
+        if(this.winCheck(board,this.state.board[row][col]))
+        {
+          let winner=this.state.board[row][col]
+          if(winner === this.state.blue)
+          {
+              var message=localStorage.getItem("Blue")+" is the winner!.."
+              localStorage.setItem("blueScore",parseInt(localStorage.getItem("blueScore"))+1)
+          }
+          else
+          {
+            var message=localStorage.getItem("Yellow")+" is the winner!.."
+            localStorage.setItem("yellowScore",parseInt(localStorage.getItem("yellowScore"))+1)
+          }
+          alert(message)
+          if(localStorage.getItem("Blue") === null)
+          {
+            window.location.replace("/player")
+          }
+          else
+          {
+            window.location.replace("/game")
+          }
+        }
+        break;
       }
-      else
+      row--;
+    }
+  }
+
+  restart(){
+    localStorage.clear();
+    window.location.replace("/player");
+  }
+
+  winCheck(board,piece){
+    // Check horizontal locations for win
+    for(let c=0;c<4;c++)
+    {
+      for(let r=0;r<6;r++)
       {
-        count=0
+        if(board[r][c] === piece && board[r][c+1] === piece && board[r][c+2] ===piece && board[r][c+3] === piece)
+        {
+          return true
+        }
       }
     }
-    console.log(count)
-    if(count === 4)
+
+    // Check vertical locations for win
+    for(let c=0;c<7;c++)
     {
-      alert("Win")
-    }*/
+      for(let r=0;r<3;r++)
+      {
+        if(board[r][c] === piece && board[r+1][c] === piece && board[r+2][c] ===piece && board[r+3][c] === piece)
+        {
+          return true
+        }
+      }
+    }
+
+    // Check positively sloped diaganols
+    for(let c=0;c<4;c++)
+    {
+      for(let r=0;r<3;r++)
+      {
+        if(board[r][c] === piece && board[r+1][c+1] === piece && board[r+2][c+2] ===piece && board[r+3][c+3] === piece)
+        {
+          return true
+        }
+      }
+    }
+
+    // Check negatively sloped diaganols
+    for(let c=0;c<4;c++)
+    {
+      for(let r=3;r<6;r++)
+      {
+        if(board[r][c] === piece && board[r-1][c+1] === piece && board[r-2][c+2] ===piece && board[r-3][c+3] === piece)
+        {
+          return true
+        }
+      }
+    }
   }
 }
 
